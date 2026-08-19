@@ -1,0 +1,24 @@
+
+2. Verificar que Ollama esté corriendo en tu equipo
+
+curl http://localhost:11434/api/tags
+
+
+
+3. Configurar variables de entorno
+LLM_MODEL=ollama:qwen3:4b-instruct
+OLLAMA_API_URL=http://127.0.0.1:11434
+OLLAMA_TIMEOUT=300
+TAVILY_API_KEY=your-tavily-api-key   # pon tu key real aquí
+
+docker build -t agentic-ai-v2 .
+docker rm -f fpsvc-v2 2>/dev/null
+
+
+docker run --rm -it --network host --env-file .env --name fpsvc-v2 agentic-ai-v2
+
+
+docker stop fpsvc-v2
+
+
+# prueba
