@@ -1,12 +1,26 @@
-# Entornos virtuales de Python
+# Git
+.git/
+.gitignore
+
+# Secretos — nunca deben quedar dentro de la imagen
+.env
+
+# Python
+__pycache__/
+*.pyc
 .venv/
 venv/
 env/
-__pycache__/
-*.pyc
-
-# Jupyter
-.ipynb_checkpoints/
 
 # macOS
 .DS_Store
+
+# Docs / extras que no necesita el contenedor
+README.md
+ayuda.txt
+*.md
+
+# IDE
+.vscode/
+.idea/
+
