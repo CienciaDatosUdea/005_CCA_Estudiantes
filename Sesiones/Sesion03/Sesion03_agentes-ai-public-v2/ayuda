@@ -19,6 +19,18 @@ docker run --rm -it --network host --env-file .env --name fpsvc-v2 agentic-ai-v2
 
 
 docker stop fpsvc-v2
+--------------------------
 
+
+
+docker run --rm -it \
+  -p 8000:8000 -p 5432:5432 \
+  --env-file .env \
+  --name fpsvc-v2 \
+  agentic-ai-v2
+Y en tu .env, cambia la URL de Ollama para que apunte al host desde dentro del contenedor:
+
+
+OLLAMA_API_URL=http://host.docker.internal:11434
 
 # prueba
