@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Agente Investigador - Malaria</title>
+</head>
+<body>
+    <h1>Agente Investigador</h1>
+    <p><a href="/bibliografia">Ver lista bibliográfica que el agente ha recopilado</a></p>
+    <form action="/generate_report_web" method="post">
+        <label for="peticion">¿Qué quieres investigar?</label><br>
+        <textarea name="peticion" id="peticion" rows="3" cols="50"></textarea><br>
+        <button type="submit">Investigar</button>
+    </form>
+
+    {% if resultados %}
+        <h2>Resultados para: {{ peticion }}</h2>
+        {% for item in resultados %}
+            <h3>{{ item.sub_tema }}</h3>
+            <p>{{ item.resumen }}</p>
+        {% endfor %}
+    {% endif %}
+
+</body>
+</html>
