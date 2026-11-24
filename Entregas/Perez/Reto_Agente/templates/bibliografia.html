@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Bibliografía - Agente Investigador</title>
+</head>
+<body>
+    <h1>Lista bibliográfica</h1>
+    <p><a href="/formulario">Volver al formulario</a></p>
+
+    <table border="1" cellpadding="5">
+        <tr>
+            <th>Fuente</th>
+            <th>Título</th>
+            <th>Autores</th>
+            <th>Año</th>
+            <th>Revista</th>
+            <th>Enlace</th>
+        </tr>
+        {% for ref in referencias %}
+        <tr>
+            <td>{{ ref.fuente }}</td>
+            <td>{{ ref.title }}</td>
+            <td>{{ ref.authors }}</td>
+            <td>{{ ref.published }}</td>
+            <td>{{ ref.journal }}</td>
+            <td><a href="{{ ref.url }}" target="_blank">Ver</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
