@@ -1,0 +1,118 @@
+Reto 02: agente investigador
+============================
+
+El reto pide construir un agente investigador. Esta versión parte de la aplicación
+de la sesión 3 (Sesiones/Sesion03/Sesion03_agentes-ai-public-v2). Un planificador
+divide la consulta en pasos; un agente de investigación busca en Tavily, arXiv y
+Wikipedia; un redactor escribe el informe en Markdown y un editor lo revisa. La
+página web muestra el avance de cada paso y el informe final con sus referencias.
+
+
+Cómo ejecutarlo
+---------------
+
+Con Docker, como en la sesión (Linux, con Ollama en el mismo equipo):
+
+    docker build -t agente-investigador .
+    docker run --rm -it --network host --env-file .env agente-investigador
+
+Sin Docker, desde esta carpeta y con las dependencias de requirements.txt:
+
+    uvicorn main:app --port 8000
+
+En ese caso las tareas se guardan en tareas.db (SQLite). En los dos casos la
+aplicación queda en http://localhost:8000.
+
+
+Configuración (.env)
+--------------------
+
+LLM_MODEL       Modelo de Ollama, por ejemplo openai:qwen3:0.6b. El prefijo
+                ollama: también sirve, porque se cambia internamente por openai:.
+OLLAMA_API_URL  y OLLAMA_TIMEOUT, como en .env.example.
+TAVILY_API_KEY  Opcional. Sin ella el plan empieza con Wikipedia y arXiv.
+ARXIV_PDF_TEXT  Opcional. Con ARXIV_PDF_TEXT=1, arXiv devuelve el texto de las
+                primeras páginas del PDF en lugar del resumen. Solo conviene con
+                modelos de contexto grande.
+
+
+Contexto del modelo
+-------------------
+
+Ollama atiende cada petición con 4096 tokens de contexto, salvo que se configure
+otra cosa, y recorta sin avisar lo que sobra. El endpoint /v1 que usa la
+aplicación ignora num_ctx, de modo que el límite se fija en el servidor:
+
+    OLLAMA_CONTEXT_LENGTH=16384 ollama serve
+
+Si Ollama corre como servicio, se añade Environment="OLLAMA_CONTEXT_LENGTH=16384"
+con `sudo systemctl edit ollama` y se reinicia el servicio. Con 4096 tokens los
+pasos de redacción y edición pierden parte de la investigación.
+
+
+Cambios respecto a la versión de la sesión
+------------------------------------------
+
+1. research_tools.py tenía un espacio al inicio de la primera línea y no se podía
+   importar. También se quitaron los imports repetidos.
+
+2. Con LLM_MODEL=ollama:..., como sugiere la guía de la sesión, el agente de
+   investigación devolvía un texto vacío. Ese prefijo ahora se cambia por openai:,
+   que es el cliente configurado para hablar con Ollama.
+
+3. La búsqueda en arXiv unía las palabras con OR. Para "machine learning 2D Ising
+   model phase transition" había 1.7 millones de resultados, y los tres primeros
+   trataban de estadística oficial y de biología. Ahora se exige que aparezcan
+   todos los términos (22 resultados, todos sobre el tema). Si no hay ninguno, se
+   quitan los últimos términos, hasta tres, antes de volver a OR. Las palabras que
+   no ayudan a buscar ("recent", "approaches", "for", ...) se descartan.
+
+4. arXiv devuelve el resumen de cada artículo y no seis páginas del PDF. Con
+   qwen3:0.6b, el texto de los PDF llenaba el contexto: el modelo resumía un solo
+   artículo y olvidaba el formato pedido. Con los resúmenes la salida queda
+   ordenada y con las URL correctas.
+
+5. Wikipedia fallaba con "Ising model" y "Transformer", porque la librería
+   corregía el título antes de buscarlo ("isling model"). Se desactivó esa
+   corrección.
+
+6. Sin clave de Tavily la herramienta lanzaba una excepción y se perdía todo el
+   paso de investigación. Ahora devuelve un mensaje de error y el modelo puede
+   seguir con arXiv y Wikipedia. Además, el plan ya no exige Tavily en el primer
+   paso cuando no hay clave.
+
+7. El plan se recortaba a 7 pasos después de añadir el paso del informe final,
+   así que ese paso podía desaparecer y el "informe" terminaba siendo la salida de
+   otro agente. Ahora el último paso es siempre el informe.
+
+8. Cada paso se asigna al agente que nombra su prefijo ("Writer agent: ...").
+   Antes bastaba con que el título contuviera "research" para mandarlo al agente
+   de investigación.
+
+9. Cada paso recibe toda la investigación, pero solo el último borrador y la
+   última revisión, para no llenar el contexto. La historia guarda ahora el nombre
+   del agente de cada paso; antes se guardaba otra vez el título.
+
+10. El agente de investigación agrega a su salida la lista de resultados que de
+    verdad devolvieron las herramientas ("Sources retrieved"). Al terminar, las URL
+    del informe que no están en esa lista se señalan al final como enlaces sin
+    verificar (src/fuentes.py). Un modelo pequeño inventa referencias con
+    facilidad, y así quedan a la vista.
+
+11. Sin DATABASE_URL la aplicación fallaba al arrancar; ahora usa SQLite. Se
+    añadió .dockerignore para que .env, con la clave de Tavily, no quede dentro de
+    la imagen.
+
+
+Bibliografía en BibTeX
+----------------------
+
+Cuando el informe termina, junto a los botones .md y .html aparece "Download .bib".
+El archivo tiene una entrada @misc por cada resultado que devolvieron las
+herramientas, armada en src/fuentes.py con los datos de la búsqueda y sin pasar
+por el modelo. Las de arXiv llevan título, autores, año, identificador, categoría
+principal y URL, y las de Wikipedia y la web, el sitio y la fecha de consulta. Si
+un artículo aparece en varios pasos, o en dos versiones de arXiv, queda una sola
+vez. Con qwen3:0.6b la sección de referencias del informe suele ser solo una
+lista de URL, y el .bib permite citar esas mismas fuentes en LaTeX con sus datos
+completos.
